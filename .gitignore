@@ -1,0 +1,30 @@
+
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.out
+
+# Go specific
+# Binaries for programs and plugins
+*.a
+main
+runtime
+
+# Test binary, built with `go test -c`
+*.test
+
+*.idea
+# Output of the go coverage tool
+*.cover
+
+# Go modules
+go.sum
+
+# Go workspace file
+go.work
+
+vendor/
+prometheus/
+nakama

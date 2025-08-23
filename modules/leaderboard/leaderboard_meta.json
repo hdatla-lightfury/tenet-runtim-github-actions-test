@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "node": {
+    "id_template": "${eventId}:node:${nodeIndex}",
+    "sort": "desc",
+    "operator": "best",
+    "reset": "0 0 * * *",
+    "metadata": {
+      "scope": "node",
+      "currency": "score",
+      "leaderboard_type": "node"
+    }
+  },
+  "daily": {
+    "id_template": "${eventId}:daily",
+    "sort": "desc",
+    "operator": "incr",
+    "reset": "0 0 * * *",
+    "metadata": {
+      "scope": "daily",
+      "currency": "score",
+      "leaderboard_type": "daily"
+    }
+  },
+  "season": {
+    "id_template": "${eventId}:season",
+    "sort": "desc",
+    "operator": "best",
+    "reset": null,
+    "metadata": {
+      "scope": "season",
+      "currency": "score",
+      "leaderboard_type": "season"
+    }
+  },
+  "constraints": {
+    "min_nodes": 1,
+    "max_nodes": 10
+  }
+}
