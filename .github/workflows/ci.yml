@@ -19,30 +19,30 @@ jobs:
   build-and-release:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-  
+
     env:
       GOOS: linux
       GOARCH: amd64
       GOFLAGS: -mod=vendor
-  
+
     steps:
       - name: Git Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.5'
-      
+
       - name: Run Go Mod Vendor deps
         run: go mod vendor
-    
+
       - name: Build Go Plugin
         run: |
-          go build --trimpath --mod=vendor --buildmode=plugin go build --trimpath --mod=vendor  --buildmode=plugin -o ./backend.so
-    
-      # Create a release (official GH action)
+          go build --trimpath --mod=vendor --buildmode=plugin -o ./backend.so
+
       - name: Create Release
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +53,6 @@ jobs:
           draft: false
           prerelease: false
 
-      # Upload built artifact to release (official GH action)
       - name: Upload backend.so to Release
         uses: actions/upload-release-asset@v1
         env:
