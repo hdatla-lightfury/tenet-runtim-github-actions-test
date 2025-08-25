@@ -11,6 +11,11 @@ on:
         description: 'Release notes (multi-line supported)'
         required: false
         type: string
+      branch:
+        description: 'Git ref to build (branch or tag)'
+        required: false
+        default: 'main'
+        type: string
 
 permissions:
   contents: write
@@ -27,6 +32,9 @@ jobs:
     steps:
       - name: Git Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0  # ensure tags/branches are available
 
       - name: Setup Go
         uses: actions/setup-go@v5
