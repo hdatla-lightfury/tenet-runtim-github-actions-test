@@ -33,6 +33,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.5'
+      
+      - name: Run Go Mod Tidy
+        run: go mod tidy
 
       - name: Run Go Mod Vendor deps
         run: go mod vendor
