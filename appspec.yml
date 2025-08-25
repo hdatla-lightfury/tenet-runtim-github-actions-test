@@ -1,0 +1,31 @@
+version: 0.1
+os: linux
+files:
+  - source: /
+    destination: /
+
+hooks:
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 300
+      runas: ec2-user
+
+  BeforeInstall:
+    - location: codedeploy/before_install.sh
+      timeout: 300
+      runas: ec2-user
+
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 300
+      runas: ec2-user
+
+  ApplicationStart:
+    - location: scripts/start.sh
+      timeout: 300
+      runas: ec2-user
+
+  ValidateService:
+    - location: scripts/validate.sh
+      timeout: 300
+      runas: ec2-user
