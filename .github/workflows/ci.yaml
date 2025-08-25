@@ -15,6 +15,10 @@ on:
 permissions:
   contents: write
 
+# for now our server runs only on allinux
+env:
+  BUNDLE_NAME_PREFIX: tenet-runtime-linux-amd64
+
 jobs:
   build-and-release:
     if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -49,10 +53,55 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload backend.so to Release
+      - name: Assemble single bundle (AWS CodeDeploy + artifacts)
+        run: |
+          set -euo pipefail
+          VER="${{ github.event.inputs.version }}"
+          mkdir -p dist bundle
+
+          # copy necessaru atrifacts
+          cp appspec.yml bundle/
+          rsync -a codedeploy/ bundle/codedeploy/
+          cp local.yml bundle/
+          cp backend.so bundle/
+          
+          #copy source code
+          git fetch --tags --force/
+          git archive --format=tar --prefix=source/ "refs/tags/${VER}" | tar -x -C bundle
+         
+          bundle everything as a .tar.gz file
+          # Create one zip that contains everything
+          BUNDLE="${{ env.BUNDLE_NAME_PREFIX }}-${VER}.tar.gz"
+          (cd bundle && tar -czf "../dist/${BUNDLE}" .)
+          
+          echo "BUNDLE_PATH=dist/${BUNDLE}" >> $GITHUB_ENV
+      
+      - name: Generate checksum
+        run: |
+          set -euo pipefail
+          sha256sum "${BUNDLE_PATH}" | tee "${BUNDLE_PATH}.sha256"
+
+      - name: Upload single bundle to Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./backend.so
-          asset_name: backend.so
-          asset_content_type: application/octet-stream
+          asset_path: ${{ env.BUNDLE_PATH }}
+          asset_name: ${{ env.BUNDLE_PATH }}
+          asset_content_type: application/zip
+      
+      - name: Upload checksum to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.BUNDLE_PATH }}.sha256
+          asset_name: ${{ env.BUNDLE_PATH }}.sha256
+          asset_content_type: text/plain
+      
+      # # (Optional) Push the single bundle to S3 via OIDC creds
+      # - name: Upload bundle to S3
+      #   run: |
+      #     VER="${{ github.event.inputs.version }}"
+      #     BASE="s3://${S3_BUCKET}/${S3_PREFIX}/${VER}"
+      #     aws s3 cp "${BUNDLE_PATH}"        "${BASE}/${BUNDLE_NAME}"
+      #     aws s3 cp "${BUNDLE_PATH}.sha256" "${BASE}/${BUNDLE_NAME}.sha256"
+            
