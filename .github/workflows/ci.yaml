@@ -68,7 +68,7 @@ jobs:
           cp backend.so bundle/
           
           #copy source code
-          git fetch --tags /
+          git fetch --tags
           git archive --format=tar --prefix=source/ "refs/tags/${VER}" | tar -x -C bundle
          
           bundle everything as a .tar.gz file
