@@ -71,7 +71,7 @@ jobs:
           git fetch --tags
           git archive --format=tar --prefix=source/ "refs/tags/${VER}" | tar -x -C bundle
          
-          bundle everything as a .tar.gz file
+          # bundle everything as a .tar.gz file
           # Create one zip that contains everything
           BUNDLE="${{ env.BUNDLE_NAME_PREFIX }}-${VER}.tar.gz"
           (cd bundle && tar -czf "../dist/${BUNDLE}" .)
