@@ -23,7 +23,7 @@ permissions:
   id-token: write 
 
 env:
-  BUNDLE_NAME_PREFIX: tenet-runtime-linux-amd64
+  BUNDLE_NAME_PREFIX: tenet-runtime-linux
   S3_BUCKET: ${{ secrets.S3_BUCKET }}
   S3_PREFIX: ${{ secrets.S3_PREFIX }}
 
@@ -86,7 +86,7 @@ jobs:
           # Create one zip that contains everything
           BUNDLE="${{ env.BUNDLE_NAME_PREFIX }}-${VER}.tar.gz"
           (cd bundle && tar -czf "../dist/${BUNDLE}" .)
-          
+          echo "BUNDLE_NAME=${BUNDLE}" >> $GITHUB_ENV
           echo "BUNDLE_PATH=dist/${BUNDLE}" >> $GITHUB_ENV
       
       - name: Generate checksum
@@ -101,7 +101,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BUNDLE_PATH }}
-          asset_name: ${{ env.BUNDLE_PATH }}
+          asset_name: ${{ env.BUNDLE_NAME }}
           asset_content_type: application/zip
       
       - name: Upload checksum to Release
