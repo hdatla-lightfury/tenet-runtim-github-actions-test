@@ -40,3 +40,7 @@ fi
 
 echo "[debug] Copying backend.so into ${MODULES_DIR}"
 cp -f "./backend.so" "${MODULES_DIR}/backend.so"
+
+# Run database migrations
+echo "🔄 Running database migrations..."
+./nakama migrate up --database.address ${DATABASE_ADDRESS}

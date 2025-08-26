@@ -17,7 +17,6 @@ on:
         default: 'main'
         type: string
     
-
 permissions:
   contents: write
   id-token: write 
@@ -54,13 +53,14 @@ jobs:
         run: |
           go build --trimpath --mod=vendor --buildmode=plugin -o ./backend.so
 
+      # Copy all the necessary artefacts for application/aws codedeploy and source code
       - name: Assemble single bundle (AWS CodeDeploy + artifacts)
         run: |
           set -euo pipefail
           VER="${{ github.event.inputs.version }}"
           mkdir -p dist bundle
 
-          # copy necessaru atrifacts
+          # copy necessary atrifacts
           cp appspec.yml bundle/
           rsync -a codedeploy/ bundle/codedeploy/
           cp local.yml bundle/
@@ -77,12 +77,14 @@ jobs:
           echo "BUNDLE_NAME=${BUNDLE}" >> $GITHUB_ENV
           echo "BUNDLE_PATH=dist/${BUNDLE}" >> $GITHUB_ENV
       
+      # generate checksum for the artifacts bundle
       - name: Generate checksum
         run: |
           set -euo pipefail
           sha256sum "${BUNDLE_PATH}" | tee "${BUNDLE_PATH}.sha256"
 
-      # official actions/release is not being maintained anymore
+      #NOTE: official actions/release is not being maintained anymore
+      # Create a release with appropriate files
       - name: Create Release
         id: create_release 
         uses: softprops/action-gh-release@v2
@@ -98,7 +100,7 @@ jobs:
             dist/${{ env.BUNDLE_NAME }}
             dist/${{ env.BUNDLE_NAME }}.sha256
             
-
+      # Github OIDC authentication
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -106,7 +108,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION_TITAN_STAGING_GAME_SERVICES }}
           audience: sts.amazonaws.com
       
-      # (Optional) Push the single bundle to S3 via OIDC
+      # Push the single bundle and its sha to S3 via OIDC
       - name: Upload bundle to S3
         run: |
           VER="${{ github.event.inputs.version }}"
