@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write 
 
 env:
   BUNDLE_NAME_PREFIX: tenet-runtime-linux-amd64
@@ -112,7 +113,7 @@ jobs:
           asset_path: ${{ env.BUNDLE_PATH }}.sha256
           asset_name: ${{ env.BUNDLE_PATH }}.sha256
           asset_content_type: text/plain
-          
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
