@@ -111,7 +111,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BUNDLE_PATH }}.sha256
-          asset_name: ${{ env.BUNDLE_PATH }}.sha256
+          asset_name: ${{ env.BUNDLE_NAME }}.sha256
           asset_content_type: text/plain
 
       - name: Configure AWS Credentials
