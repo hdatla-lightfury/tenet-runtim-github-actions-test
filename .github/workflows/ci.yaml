@@ -16,6 +16,7 @@ on:
         required: false
         default: 'main'
         type: string
+    
 
 permissions:
   contents: write
@@ -110,12 +111,18 @@ jobs:
           asset_path: ${{ env.BUNDLE_PATH }}.sha256
           asset_name: ${{ env.BUNDLE_PATH }}.sha256
           asset_content_type: text/plain
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_TITAN_STAGING_GAME_SERVICES }}
+          aws-region: ${{ secrets.AWS_REGION_TITAN_STAGING_GAME_SERVICES }}
+          audience: sts.amazonaws.com
       
-      # # (Optional) Push the single bundle to S3 via OIDC creds
-      # - name: Upload bundle to S3
-      #   run: |
-      #     VER="${{ github.event.inputs.version }}"
-      #     BASE="s3://${S3_BUCKET}/${S3_PREFIX}/${VER}"
-      #     aws s3 cp "${BUNDLE_PATH}"        "${BASE}/${BUNDLE_NAME}"
-      #     aws s3 cp "${BUNDLE_PATH}.sha256" "${BASE}/${BUNDLE_NAME}.sha256"
+      # (Optional) Push the single bundle to S3 via OIDC
+      - name: Upload bundle to S3
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          BASE="s3://${S3_BUCKET}/${S3_PREFIX}/${VER}"
+          aws s3 cp "${BUNDLE_PATH}"        "${BASE}/${BUNDLE_NAME}"
+          aws s3 cp "${BUNDLE_PATH}.sha256" "${BASE}/${BUNDLE_NAME}.sha256"
             
