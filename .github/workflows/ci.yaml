@@ -21,9 +21,10 @@ on:
 permissions:
   contents: write
 
-# for now our server runs only on allinux
 env:
   BUNDLE_NAME_PREFIX: tenet-runtime-linux-amd64
+  S3_BUCKET: ${{ secrets.S3_BUCKET }}
+  S3_PREFIX: ${{ secrets.S3_PREFIX }}
 
 jobs:
   build-and-release:
@@ -111,6 +112,7 @@ jobs:
           asset_path: ${{ env.BUNDLE_PATH }}.sha256
           asset_name: ${{ env.BUNDLE_PATH }}.sha256
           asset_content_type: text/plain
+          
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -125,4 +127,3 @@ jobs:
           BASE="s3://${S3_BUCKET}/${S3_PREFIX}/${VER}"
           aws s3 cp "${BUNDLE_PATH}"        "${BASE}/${BUNDLE_NAME}"
           aws s3 cp "${BUNDLE_PATH}.sha256" "${BASE}/${BUNDLE_NAME}.sha256"
-            

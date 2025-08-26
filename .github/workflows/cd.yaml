@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.0.0)'
+        description: 'Version tag to deploy (e.g., v1.0.0)'
         required: true
-        type: string
-      release_notes:
-        description: 'Release notes (multi-line supported)'
-        required: false
         type: string
     
 
