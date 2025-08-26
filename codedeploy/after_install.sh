@@ -2,22 +2,40 @@
 
 set -e
 
-SECRET_ID="staging/tenet-runtime"
-AWS_REGION=ap-south-1
+set -e
 
-echo "[debug] Fetching DATABASE_ADDRESS from Secrets Manager: ${SECRET_ID}"
+SECRET_ID="staging/tenet-runtime/aws-rds-postgres"
+AWS_REGION="ap-south-1"
 
-DATABASE_ADDRESS="$(aws secretsmanager get-secret-value \
+echo "[debug] Fetching DB credentials from Secrets Manager: ${SECRET_ID}"
+
+# Fetch the secret JSON
+secret_str="$(aws secretsmanager get-secret-value \
   --secret-id "${SECRET_ID}" \
   ${AWS_REGION:+--region "$AWS_REGION"} \
   --query 'SecretString' \
-  --output text \
-  | jq -r '.DATABASE_ADDRESS')"
+  --output text)"
 
-if [[ -z "$DATABASE_ADDRESS" || "$DATABASE_ADDRESS" == "null" ]]; then
-  echo "[error] DATABASE_ADDRESS not found in secret ${SECRET_ID}"
+if [[ -z "$secret_str" || "$secret_str" == "null" ]]; then
+  echo "[error] SecretString not found for ${SECRET_ID}"
   exit 1
 fi
+
+# Parse fields and build DATABASE_ADDRESS
+username="$(echo "$secret_str" | jq -r '.username')"
+password="$(echo "$secret_str" | jq -r '.password')"
+host="$(echo "$secret_str" | jq -r '.host')"
+port="$(echo "$secret_str" | jq -r '.port')"
+dbname="$(echo "$secret_str" | jq -r '.dbname')"
+
+if [[ -z "$username" || -z "$password" || -z "$host" || -z "$port" || -z "$dbname" ]]; then
+  echo "[error] One or more required fields missing in secret JSON"
+  exit 2
+fi
+
+DATABASE_ADDRESS="${username}:${password}@${host}:${port}/${dbname}"
+echo "[debug] Built DATABASE_ADDRESS = $DATABASE_ADDRESS"
+
 
 LOCAL_YAML_FILE="./local.yml"
 
@@ -30,6 +48,12 @@ echo "[debug] Updating $(basename "$LOCAL_YAML_FILE") with yq"
 DATABASE_ADDRESS="${DATABASE_ADDRESS}" yq -i '
   .database.address = [ env(DATABASE_ADDRESS) ]
 ' "${LOCAL_YAML_FILE}"
+
+
+# Run database migrations
+echo "🔄 Running database migrations..."
+./nakama migrate up --database.address ${DATABASE_ADDRESS}
+
 
 MODULES_DIR="./modules"
 
