@@ -54,11 +54,11 @@ NAKAMA_VERSION=3.28.0
 if [ ! -f "./nakama" ]; then
     echo " [debug] Installing Nakama v${NAKAMA_VERSION}..."
     cd $TEMP_DIR
-    wget -q https://github.com/heroiclabs/nakama/releases/download/v${NAKAMA_VERSION}/nakama-${NAKAMA_VERSION}-linux-amd64.tar.gz
-    tar -xzf nakama-3.28.0-linux-amd64.tar.gz
+    wget -q https://github.com/heroiclabs/nakama/releases/download/v${NAKAMA_VERSION}/nakama-${NAKAMA_VERSION}-linux-amd64.tar.gz  -O nakama.tar.gz
+    tar -xzf nakam.tar.gz
     cd - > /dev/null
-    cp $TEMP_DIR/nakama ./nakama
-    chmod +x ./nakama
+    cp $TEMP_DIR/nakama /home/ec2-user/tenet-runtime/nakama
+    chmod +x /home/ec2-user/tenet-runtime/nakama
 fi
 
 # Install AWS CLI v2 for secrets manager
