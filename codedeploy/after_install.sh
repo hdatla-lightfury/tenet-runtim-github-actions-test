@@ -63,7 +63,7 @@ if [[ ! -f "/home/ec2-user/tenet-runtime/backend.so" ]]; then
 fi
 
 echo "[debug] Copying backend.so into ${MODULES_DIR}"
-cp -f "/home/ec2-user/tenet-runtime/backend.so" "${MODULES_DIR}/backend.so"
+cp -f "/home/ec2-user/tenet-runtime/backend.so" "${MODULES_DIR}"
 
 
 # Run database migrations
