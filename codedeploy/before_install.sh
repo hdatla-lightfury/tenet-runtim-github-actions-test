@@ -7,6 +7,10 @@ echo "Setting up Nakama Go Backend dependencies..."
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
+sudo mkdir -p /home/ec2-user/tenet-runtime
+sudo chown -R ec2-user:ec2-user /home/ec2-user/tenet-runtime
+
+
 # Install Node.js with NVM
 if ! command -v nvm &> /dev/null; then
     echo "Installing Node.js with NVM..."
