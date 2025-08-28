@@ -104,3 +104,5 @@ if ! command -v yq >/dev/null 2>&1; then
   sudo mv ${BINARY} /usr/local/bin/yq
   cd - >/dev/null
 fi
+
+mkdir -p /home/ec2-user/tenet-runtime/modules
