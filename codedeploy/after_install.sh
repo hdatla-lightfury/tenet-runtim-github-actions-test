@@ -26,7 +26,7 @@ username="$(echo "$secret_str" | jq -r '.username')"
 password="$(echo "$secret_str" | jq -r '.password')"
 host="$(echo "$secret_str" | jq -r '.host')"
 port="$(echo "$secret_str" | jq -r '.port')"
-dbname="$(echo "$secret_str" | jq -r '.dbname')"
+dbname="postgres"
 
 if [[ -z "$username" || -z "$password" || -z "$host" || -z "$port" || -z "$dbname" ]]; then
   echo "[error] One or more required fields missing in secret JSON"
@@ -34,10 +34,11 @@ if [[ -z "$username" || -z "$password" || -z "$host" || -z "$port" || -z "$dbnam
 fi
 
 DATABASE_ADDRESS="${username}:${password}@${host}:${port}/${dbname}"
-echo "[debug] Built DATABASE_ADDRESS = $DATABASE_ADDRESS"
+echo "[debug] Built DATABASE_ADDRESS"
 
 
-LOCAL_YAML_FILE="./local.yml"
+# Codedeploy looks for all the folders in source directory, not relative to this file.
+LOCAL_YAML_FILE="local.yml"
 
 if [[ ! -f "${LOCAL_YAML_FILE}" ]]; then
   echo "[error] local.yml not found in parent dir,  Exiting."
