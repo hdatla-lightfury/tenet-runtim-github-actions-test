@@ -4,6 +4,8 @@ set -e
 
 set -e
 
+sudo chmod -R 666 /home/ec2-user/tenet-runtime/*
+
 SECRET_ID="staging/tenet-runtime/aws-rds-postgres"
 AWS_REGION="ap-south-1"
 
