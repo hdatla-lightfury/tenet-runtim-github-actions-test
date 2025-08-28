@@ -37,8 +37,8 @@ DATABASE_ADDRESS="${username}:${password}@${host}:${port}/${dbname}"
 echo "[debug] Built DATABASE_ADDRESS"
 
 
-# Codedeploy looks for all the folders in source directory, not relative to this file.
-LOCAL_YAML_FILE="local.yml"
+# Codedeploy looks for all the folders in source directory, not relative to this folder.
+LOCAL_YAML_FILE="/home/ec2-user/tenet-runtime/local.yml"
 
 if [[ ! -f "${LOCAL_YAML_FILE}" ]]; then
   echo "[error] local.yml not found in parent dir,  Exiting."
