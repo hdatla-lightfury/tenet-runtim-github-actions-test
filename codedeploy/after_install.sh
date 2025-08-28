@@ -52,12 +52,6 @@ DATABASE_ADDRESS="${DATABASE_ADDRESS}" yq -i '
   .database.address = [ env(DATABASE_ADDRESS) ]
 ' "${LOCAL_YAML_FILE}"
 
-
-# Run database migrations
-echo "🔄 Running database migrations..."
-./nakama migrate up --database.address ${DATABASE_ADDRESS}
-
-
 MODULES_DIR="./modules"
 
 if [[ ! -f "./backend.so" ]]; then
@@ -68,6 +62,7 @@ fi
 echo "[debug] Copying backend.so into ${MODULES_DIR}"
 cp -f "./backend.so" "${MODULES_DIR}/backend.so"
 
+
 # Run database migrations
 echo "🔄 Running database migrations..."
-./nakama migrate up --database.address ${DATABASE_ADDRESS}
+/home/ec2-user/tenet-runtime/nakama migrate up --database.address ${DATABASE_ADDRESS}
