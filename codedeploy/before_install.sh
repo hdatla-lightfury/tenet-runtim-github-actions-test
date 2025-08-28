@@ -29,7 +29,7 @@ nvm use --lts
 
 # Install PM2
 echo "Installing PM2..."
-npm install -g pm2
+sudo npm install -g pm2
 
 # Install Go 1.24.5
 GO_VERSION=1.24.5
