@@ -52,15 +52,15 @@ DATABASE_ADDRESS="${DATABASE_ADDRESS}" yq -i '
   .database.address = [ env(DATABASE_ADDRESS) ]
 ' "${LOCAL_YAML_FILE}"
 
-MODULES_DIR="./modules"
+MODULES_DIR="/home/ec2-user/tenet-runtime/modules"
 
-if [[ ! -f "./backend.so" ]]; then
-  echo "[error] backend.so not found in ."
+if [[ ! -f "/home/ec2-user/tenet-runtime/backend.so" ]]; then
+  echo "[error] backend.so not found in /home/ec2-user/tenet-runtime/"
   exit 1
 fi
 
 echo "[debug] Copying backend.so into ${MODULES_DIR}"
-cp -f "./backend.so" "${MODULES_DIR}/backend.so"
+cp -f "/home/ec2-user/tenet-runtime/backend.so" "${MODULES_DIR}/backend.so"
 
 
 # Run database migrations
