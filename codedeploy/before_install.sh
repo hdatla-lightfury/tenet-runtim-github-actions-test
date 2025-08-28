@@ -11,25 +11,6 @@ sudo mkdir -p /home/ec2-user/tenet-runtime
 sudo chown -R ec2-user:ec2-user /home/ec2-user/tenet-runtime
 
 
-# Install Node.js with NVM
-if ! command -v nvm &> /dev/null; then
-    echo "Installing Node.js with NVM..."
-    cd $TEMP_DIR
-    curl -sL https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh -o install_nvm.sh
-    bash install_nvm.sh
-    cd - > /dev/null
-    source ~/.bashrc
-fi
-
-# Install Node.js LTS
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm install --lts
-nvm use --lts
-
-# Install PM2
-echo "Installing PM2..."
-sudo npm install -g pm2
 
 # Install Go 1.24.5
 GO_VERSION=1.24.5
@@ -106,3 +87,34 @@ if ! command -v yq >/dev/null 2>&1; then
 fi
 
 mkdir -p /home/ec2-user/tenet-runtime/modules
+
+
+# --- systemd unit for Nakama ---
+echo "[debug] Writing systemd unit for Nakama"
+sudo tee /etc/systemd/system/nakama.service >/dev/null <<'UNIT'
+[Unit]
+Description=Nakama Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/tenet-runtime
+# Adjust flags as you need; --config should point to your local.yml
+ExecStart=/home/ec2-user/tenet-runtime/nakama --config /home/ec2-user/tenet-runtime/local.yml
+Restart=on-failure
+RestartSec=5
+# Increase if your startup needs more time
+StartLimitBurst=3
+StartLimitIntervalSec=60
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# Reload systemd and enable service (autostart on boot)
+sudo systemctl daemon-reload
+sudo systemctl enable nakama
+echo "[debug] nakama.service installed and enabled (not started yet)"
