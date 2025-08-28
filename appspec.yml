@@ -6,7 +6,7 @@ files:
 
 hooks:
   ApplicationStop:
-    - location: scripts/stop.sh
+    - location: codedeploy/stop.sh
       timeout: 300
       runas: ec2-user
 
@@ -16,12 +16,12 @@ hooks:
       runas: ec2-user
 
   AfterInstall:
-    - location: scripts/after_install.sh
+    - location: codedeploy/after_install.sh
       timeout: 300
       runas: ec2-user
 
   ApplicationStart:
-    - location: scripts/start.sh
+    - location: codedeploy/start.sh
       timeout: 300
       runas: ec2-user
 
