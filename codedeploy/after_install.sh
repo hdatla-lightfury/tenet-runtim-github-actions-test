@@ -6,7 +6,7 @@ set -e
 
 sudo chmod -R 666 /home/ec2-user/tenet-runtime/*
 
-sudo chown ec2-user:ec2-user backend.so
+sudo chown ec2-user:ec2-user /home/ec2-user/tenet-runtime/backend.so
 
 
 SECRET_ID="staging/tenet-runtime/aws-rds-postgres"
