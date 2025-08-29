@@ -1,4 +1,4 @@
-name: CI for tenet runtime
+name: CD for tenet runtime
 
 on:
   workflow_dispatch:
