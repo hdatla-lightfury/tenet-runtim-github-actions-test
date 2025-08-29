@@ -7,11 +7,75 @@ on:
         description: 'Version tag to deploy (e.g., v1.0.0)'
         required: true
         type: string
-    
 
-    
-     
-    
+jobs:
+  deploy:
+    name: Trigger AWS CodeDeploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
+    env:
+      AWS_REGION: ap-south-1                 # Adjust if needed
+      APP_NAME: tenet-runtime-staging-deploy            # CodeDeploy Application name
+      DEPLOYMENT_GROUP: tenet-runtime-staging-deploy-2     # CodeDeploy Deployment Group name
+      BUNDLE_TYPE: tgz                       # because we’re using tar.gz
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+        # Github OIDC authentication
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_TITAN_STAGING_GAME_SERVICES }}
+          aws-region: ${{ secrets.AWS_REGION_TITAN_STAGING_GAME_SERVICES }}
+          audience: sts.amazonaws.com
 
+      - name: Build S3 key
+        id: key
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          FILE="tenet-runtime-linux-${VERSION}.tar.gz"
+
+          PREFIX="${{ secrets.S3_PREFIX }}"
+          case "$PREFIX" in
+            "" ) : ;;
+            */ ) : ;;
+            * ) PREFIX="$PREFIX/";;
+          esac
+
+          S3_KEY="${PREFIX}${FILE}"
+          echo "S3 key: $S3_KEY"
+          echo "s3_key=$S3_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Register application revision
+        run: |
+          aws deploy register-application-revision \
+            --application-name "${{ env.APP_NAME }}" \
+            --s3-location bucket="${{ secrets.S3_BUCKET }}",key="${{ steps.key.outputs.s3_key }}",bundleType="${{ env.BUNDLE_TYPE }}"
+
+      - name: Create deployment
+        id: create
+        run: |
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name "${{ env.APP_NAME }}" \
+            --deployment-group-name "${{ env.DEPLOYMENT_GROUP }}" \
+            --revision "s3Location={bucket=${{ secrets.S3_BUCKET }},key=${{ steps.key.outputs.s3_key }},bundleType=${{ env.BUNDLE_TYPE }}}" \
+            --description "Trigger ${{ github.event.inputs.version }} from ${{ github.repository }}@${{ github.sha }}" \
+            --query 'deploymentId' --output text)
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "Deployment ID: $DEPLOYMENT_ID"
+
+      - name: Wait for deployment
+        run: |
+          aws deploy wait deployment-successful --deployment-id "${{ steps.create.outputs.deployment_id }}"
+          echo "Deployment succeeded ✅"
+
+      - name: Show deployment status (on failure)
+        if: failure()
+        run: |
+          aws deploy get-deployment --deployment-id "${{ steps.create.outputs.deployment_id }}" || true
