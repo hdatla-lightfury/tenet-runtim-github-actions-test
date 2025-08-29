@@ -11,6 +11,17 @@ sudo mkdir -p /home/ec2-user/tenet-runtime
 sudo chown -R ec2-user:ec2-user /home/ec2-user/tenet-runtime
 
 
+# --- Stop Nakama if running to avoid "Text file busy" on replace ---
+
+if systemctl list-unit-files | grep -q '^nakama\.service'; then
+
+  echo "[debug] Stopping nakama.service if running..."
+
+  sudo systemctl stop nakama || true
+
+fi
+
+
 
 # Install Go 1.24.5
 GO_VERSION=1.24.5
