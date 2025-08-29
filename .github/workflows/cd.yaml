@@ -37,7 +37,6 @@ jobs:
       - name: Build S3 key
         id: key
         run: |
-          set -euo pipefail
           VERSION="${{ github.event.inputs.version }}"
           FILE="tenet-runtime-linux-${VERSION}.tar.gz"
 
@@ -48,9 +47,10 @@ jobs:
             * ) PREFIX="$PREFIX/";;
           esac
 
-          S3_KEY="${PREFIX}${FILE}"
-          echo "S3 key: $S3_KEY"
+          S3_KEY="${PREFIX}${VERSION}/${FILE}"
+
           echo "s3_key=$S3_KEY" >> "$GITHUB_OUTPUT"
+          echo "Artifact path: s3://${{ secrets.S3_BUCKET }}/$S3_KEY"
 
       - name: Register application revision
         run: |
