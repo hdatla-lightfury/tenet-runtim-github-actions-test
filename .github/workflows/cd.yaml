@@ -64,7 +64,7 @@ jobs:
           DEPLOYMENT_ID=$(aws deploy create-deployment \
             --application-name "${{ env.APP_NAME }}" \
             --deployment-group-name "${{ env.DEPLOYMENT_GROUP }}" \
-            --revision "s3Location={bucket=${{ secrets.S3_BUCKET }},key=${{ steps.key.outputs.s3_key }},bundleType=${{ env.BUNDLE_TYPE }}}" \
+            --s3-location bucket="${{ secrets.S3_BUCKET }}",key="${{ steps.key.outputs.s3_key }}",bundleType="${{ env.BUNDLE_TYPE }}" \
             --description "Trigger ${{ github.event.inputs.version }} from ${{ github.repository }}@${{ github.sha }}" \
             --query 'deploymentId' --output text)
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
