@@ -14,5 +14,3 @@ for i in {1..30}; do
   fi
   sleep 1
 done
-
-sudo systemctl status --no-pager -l "${SERVICE}" || true

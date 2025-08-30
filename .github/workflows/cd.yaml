@@ -1,4 +1,4 @@
-name: CD for tenet runtime
+name: CD for staging tenet runtime
 
 on:
   workflow_dispatch:
@@ -16,24 +16,12 @@ jobs:
       id-token: write
       contents: read
 
-    env:
-      AWS_REGION: ap-south-1                 # Adjust if needed
-      APP_NAME: tenet-runtime-staging-deploy            # CodeDeploy Application name
-      DEPLOYMENT_GROUP: tenet-runtime-staging-deploy-2     # CodeDeploy Deployment Group name
+    env: 
       BUNDLE_TYPE: tgz                       # because we’re using tar.gz
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
         
-        # Github OIDC authentication
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN_TITAN_STAGING_GAME_SERVICES }}
-          aws-region: ${{ secrets.AWS_REGION_TITAN_STAGING_GAME_SERVICES }}
-          audience: sts.amazonaws.com
-
+        # Build s3 key to deploy the application from 
       - name: Build S3 key
         id: key
         run: |
@@ -41,40 +29,57 @@ jobs:
           FILE="tenet-runtime-linux-${VERSION}.tar.gz"
 
           PREFIX="${{ secrets.S3_PREFIX }}"
-          case "$PREFIX" in
-            "" ) : ;;
-            */ ) : ;;
-            * ) PREFIX="$PREFIX/";;
-          esac
 
-          S3_KEY="${PREFIX}${VERSION}/${FILE}"
+          S3_KEY="${PREFIX}/${VERSION}/${FILE}"
 
           echo "s3_key=$S3_KEY" >> "$GITHUB_OUTPUT"
           echo "Artifact path: s3://${{ secrets.S3_BUCKET }}/$S3_KEY"
+            
+        # Github OIDC authentication
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_TITAN_STAGING_GAME_SERVICES }}
+          aws-region: ${{ secrets.AWS_REGION_TITAN_STAGING_GAME_SERVICES }}
+          audience: sts.amazonaws.com
+       
+        # check if artifacts exist in the appropriate s3 bucket to avoid bad deployments
+      - name: Check if artifacts exists in S3
+        run: |
+          set -euo pipefail
+          if ! aws s3 ls "s3://${{ secrets.S3_BUCKET }}/${{ steps.key.outputs.s3_key }}" > /dev/null; then
+            echo "::error::Artifact not found in S3: s3://${{ secrets.S3_BUCKET }}/${{ steps.key.outputs.s3_key }}"
+            exit 1
+          fi
+          echo "Artifact found "
 
+        # Register application revision with codedeploy
       - name: Register application revision
         run: |
           aws deploy register-application-revision \
-            --application-name "${{ env.APP_NAME }}" \
+            --application-name "${{ secrets.CODEDEPLOY_APP_NAME_STAGING }}" \
             --s3-location bucket="${{ secrets.S3_BUCKET }}",key="${{ steps.key.outputs.s3_key }}",bundleType="${{ env.BUNDLE_TYPE }}"
-
+        
+        # Trigger AWS CodeDeploy with the input application revision
       - name: Create deployment
         id: create
         run: |
           DEPLOYMENT_ID=$(aws deploy create-deployment \
-            --application-name "${{ env.APP_NAME }}" \
-            --deployment-group-name "${{ env.DEPLOYMENT_GROUP }}" \
+            --application-name "${{ secrets.CODEDEPLOY_APP_NAME_STAGING }}" \
+            --deployment-group-name "${{ secrets.DEPLOYMENT_GROUP_STAGING }}" \
             --s3-location bucket="${{ secrets.S3_BUCKET }}",key="${{ steps.key.outputs.s3_key }}",bundleType="${{ env.BUNDLE_TYPE }}" \
             --description "Trigger ${{ github.event.inputs.version }} from ${{ github.repository }}@${{ github.sha }}" \
             --query 'deploymentId' --output text)
           echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           echo "Deployment ID: $DEPLOYMENT_ID"
-
+        
+        # Wait until deployment succeeds
       - name: Wait for deployment
         run: |
           aws deploy wait deployment-successful --deployment-id "${{ steps.create.outputs.deployment_id }}"
-          echo "Deployment succeeded ✅"
-
+          echo "Deployment succeeded "
+        
+        # Notify if the deploymnet fails
       - name: Show deployment status (on failure)
         if: failure()
         run: |
