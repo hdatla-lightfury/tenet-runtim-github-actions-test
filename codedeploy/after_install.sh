@@ -1,23 +1,26 @@
 #!/bin/bash
-
 set -e
 
-set -e
+# --- Load constants ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONSTANTS_FILE="${CONSTANTS_FILE:-${SCRIPT_DIR}/constants.sh}"
+if [ ! -f "${CONSTANTS_FILE}" ]; then
+  echo "[error] constants file not found at ${CONSTANTS_FILE}"
+  exit 1
+fi
 
-sudo chmod -R 777 /home/ec2-user/tenet-runtime/*
+source "${CONSTANTS_FILE}"
 
-sudo chown ec2-user:ec2-user /home/ec2-user/tenet-runtime/backend.so
-
-
-SECRET_ID="staging/tenet-runtime/aws-rds-postgres"
-AWS_REGION="ap-south-1"
+# --- Permissions fixups (use constants) ---
+sudo chmod -R "${CHMOD_RECURSE_MODE}" ${CHMOD_RECURSE_TARGET}
+sudo chown "${CHOWN_USER}:${CHOWN_GROUP}" "${CHOWN_SINGLE_TARGET}"
 
 echo "[debug] Fetching DB credentials from Secrets Manager: ${SECRET_ID}"
 
 # Fetch the secret JSON
 secret_str="$(aws secretsmanager get-secret-value \
   --secret-id "${SECRET_ID}" \
-  ${AWS_REGION:+--region "$AWS_REGION"} \
+  ${AWS_REGION:+--region "${AWS_REGION}"} \
   --query 'SecretString' \
   --output text)"
 
@@ -31,7 +34,7 @@ username="$(echo "$secret_str" | jq -r '.username')"
 password="$(echo "$secret_str" | jq -r '.password')"
 host="$(echo "$secret_str" | jq -r '.host')"
 port="$(echo "$secret_str" | jq -r '.port')"
-dbname="postgres"
+dbname="${DB_NAME}"
 
 if [[ -z "$username" || -z "$password" || -z "$host" || -z "$port" || -z "$dbname" ]]; then
   echo "[error] One or more required fields missing in secret JSON"
@@ -41,31 +44,29 @@ fi
 DATABASE_ADDRESS="${username}:${password}@${host}:${port}/${dbname}"
 echo "[debug] Built DATABASE_ADDRESS"
 
-
-# Codedeploy looks for all the folders in source directory, not relative to this folder.
-LOCAL_YAML_FILE="/home/ec2-user/tenet-runtime/local.yml"
-
+# Codedeploy looks for folders in source directory; local.yml must already exist
 if [[ ! -f "${LOCAL_YAML_FILE}" ]]; then
-  echo "[error] local.yml not found in parent dir,  Exiting."
+  echo "[error] local.yml not found at ${LOCAL_YAML_FILE}. Exiting."
   exit 1
 fi
 
-echo "[debug] Updating $(basename "$LOCAL_YAML_FILE") with yq"
+echo "[debug] Updating $(basename "${LOCAL_YAML_FILE}") with yq"
 DATABASE_ADDRESS="${DATABASE_ADDRESS}" yq -i '
   .database.address = [ env(DATABASE_ADDRESS) ]
 ' "${LOCAL_YAML_FILE}"
 
-MODULES_DIR="/home/ec2-user/tenet-runtime/modules"
+# Ensure modules dir exists (from constants)
+mkdir -p "${MODULES_DIR}"
 
-if [[ ! -f "/home/ec2-user/tenet-runtime/backend.so" ]]; then
-  echo "[error] backend.so not found in /home/ec2-user/tenet-runtime/"
+# Copy backend module
+if [[ ! -f "${BACKEND_SO_PATH}" ]]; then
+  echo "[error] ${BACKEND_SO_NAME} not found at ${BACKEND_SO_PATH}"
   exit 1
 fi
 
-echo "[debug] Copying backend.so into ${MODULES_DIR}"
-cp -f "/home/ec2-user/tenet-runtime/backend.so" "${MODULES_DIR}"
-
+echo "[debug] Copying ${BACKEND_SO_NAME} into ${MODULES_DIR}"
+cp -f "${BACKEND_SO_PATH}" "${MODULES_DIR}/"
 
 # Run database migrations
 echo "🔄 Running database migrations..."
-/home/ec2-user/tenet-runtime/nakama migrate up --database.address ${DATABASE_ADDRESS}
+"${NAKAMA_BIN}" migrate up --database.address "${DATABASE_ADDRESS}"
