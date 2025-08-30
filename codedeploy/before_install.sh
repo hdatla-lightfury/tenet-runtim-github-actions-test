@@ -4,11 +4,34 @@ set -e
 
 echo "Setting up Nakama Go Backend dependencies..."
 
+
+# --- Timestamped backup of tenet-runtime ---
+
+TS="$(date +%Y%m%d-%H%M%S)"
+SRC="/home/ec2-user/tenet-runtime"
+DST="/home/ec2-user/tenet-runtime-backup-${TS}"
+
+if [ -d "$SRC" ] && [ "$(ls -A "$SRC" 2>/dev/null)" ]; then
+  echo "[debug] Backing up $SRC to $DST ..."
+  sudo mkdir -p "$DST"
+  sudo cp -a "$SRC"/. "$DST"/
+  sudo chown -R ec2-user:ec2-user "$DST"
+  echo "[debug] Backup complete: $DST"
+else
+  echo "[debug] $SRC missing or empty; skipping backup."
+fi
+
+echo "[debug] Pruning old backups, keeping most recent 7..."
+ls -1dt /home/ec2-user/tenet-runtime-backup-* 2>/dev/null | tail -n +8 | xargs -r sudo rm -rf
+
+
+
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
 sudo mkdir -p /home/ec2-user/tenet-runtime
 sudo chown -R ec2-user:ec2-user /home/ec2-user/tenet-runtime
+
 
 
 # --- Stop Nakama if running to avoid "Text file busy" on replace ---
