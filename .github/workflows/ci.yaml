@@ -62,7 +62,7 @@ jobs:
 
           # copy necessary atrifacts
           cp appspec.yml bundle/
-          rsync -a codedeploy/ bundle/codedeploy/
+          cp -a codedeploy/ bundle/codedeploy/
           cp local.yml bundle/
           cp backend.so bundle/
           
