@@ -1,0 +1,45 @@
+version: 1
+
+# Languages
+languages:
+  - name: go
+    paths: ["."]
+    exclude: ["**/vendor/**", "**/bin/**", "**/build/**", "**/dist/**"]
+  - name: shell
+    paths: ["."]
+    exclude: ["**/vendor/**", "**/bin/**", "**/build/**", "**/dist/**"]
+
+# Formatting rules
+format:
+  go:
+    gofmt: true      # enforce gofmt formatting
+  shell:
+    shfmt: true      # enforce shfmt formatting
+
+# Static analysis / lint checks
+checks:
+  go:
+    enable:
+      - govet        # built-in vet tool
+      - golint       # linting
+      - staticcheck  # advanced linter
+  shell:
+    enable:
+      - shellcheck   # standard shell script linter
+
+# Metrics collection
+metrics:
+  complexity: true   # cyclomatic complexity
+  duplication: true  # duplicated code
+  size: true         # file/function size
+
+# Code smell detection
+smells:
+  enable_all: true
+
+# Global exclusions
+exclude:
+  - ".git/**"
+  - ".github/**"
+  - "**/*.min.js"
+  - "**/*.lock"
