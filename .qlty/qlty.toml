@@ -70,9 +70,6 @@ name = "dockerfmt"
 [[plugin]]
 name = "gofmt"
 
-[[plugin]]
-name = "golangci-lint"
-mode = "comment"
 
 [[plugin]]
 name = "hadolint"
