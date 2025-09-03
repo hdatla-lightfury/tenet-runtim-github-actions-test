@@ -1,0 +1,140 @@
+name: qlty - fmt, check, metrics, smells
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write  # needed to comment on PR
+  actions: read
+
+jobs:
+  qlty:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install qlty CLI
+      - name: Install qlty
+        uses: qltysh/qlty-action/install@v2
+
+      # ---- Formatting (non-destructive in CI) ----
+      # If you want to auto-fix formatting in PRs, set write: true and push back changes with a bot token.
+      # Here we *check* formatting and fail if diffs are needed.
+      - name: qlty fmt (check only)
+        id: fmt
+        # The fmt action is optional; you can also run `qlty fmt --all` directly.
+        # Using CLI directly to ensure "check-only" behavior:
+        run: |
+          # Format to a temp dir and diff against repo to avoid modifying the workspace
+          TMPDIR="$(mktemp -d)"
+          cp -R . "$TMPDIR/src"
+          cd "$TMPDIR/src"
+          qlty fmt --all || true
+          cd "$GITHUB_WORKSPACE"
+          # Show diff (if any) and fail step if changes would be made
+          git --no-pager diff --color=never > qlty-fmt.diff || true
+          if [ -s qlty-fmt.diff ]; then
+            echo "Formatting changes needed."
+            echo "needs_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---- qlty checks / smells / metrics ----
+      - name: qlty check
+        run: |
+          set -o pipefail
+          qlty check --all | tee qlty-check.txt
+        shell: bash
+
+      - name: qlty smells
+        run: |
+          set -o pipefail
+          qlty smells --all | tee qlty-smells.txt
+        shell: bash
+
+      - name: qlty metrics
+        run: |
+          set -o pipefail
+          qlty metrics --all --max-depth=2 --sort complexity --limit 25 | tee qlty-metrics.txt
+        shell: bash
+
+      # ---- Build a combined Markdown report ----
+      - name: Build PR report
+        id: report
+        run: |
+          {
+            echo "## qlty report"
+            echo ""
+            echo "**Formatting**: $([ '${{ steps.fmt.outputs.needs_changes }}' = 'true' ] && echo '⚠️ changes needed' || echo '✅ clean')"
+            echo ""
+            echo "<details><summary><strong>qlty check</strong></summary>"
+            echo
+            echo '```text'
+            sed -e 's/\x1b\[[0-9;]*m//g' qlty-check.txt | tail -n 500
+            echo '```'
+            echo "</details>"
+            echo
+            echo "<details><summary><strong>qlty smells</strong></summary>"
+            echo
+            echo '```text'
+            sed -e 's/\x1b\[[0-9;]*m//g' qlty-smells.txt | tail -n 500
+            echo '```'
+            echo "</details>"
+            echo
+            echo "<details><summary><strong>qlty metrics</strong></summary>"
+            echo
+            echo '```text'
+            sed -e 's/\x1b\[[0-9;]*m//g' qlty-metrics.txt | tail -n 500
+            echo '```'
+            echo "</details>"
+            echo
+            echo "_Artifacts with full outputs attached to the run._"
+          } > qlty-report.md
+          # Also surface in the job summary
+          cat qlty-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # ---- Upload raw outputs as artifacts ----
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlty-outputs
+          path: |
+            qlty-fmt.diff
+            qlty-check.txt
+            qlty-smells.txt
+            qlty-metrics.txt
+            qlty-report.md
+          if-no-files-found: warn
+          retention-days: 7
+
+      # ---- Post (or update) a sticky PR comment ----
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          recreate: true
+          path: qlty-report.md
+
+      # ---- Fail the job if formatting needs changes or check found issues (optional) ----
+      # You can adjust this logic to your policy.
+      - name: Enforce policy
+        if: always()
+        run: |
+          STATUS=0
+          if [ "${{ steps.fmt.outputs.needs_changes }}" = "true" ]; then
+            echo "❌ Formatting changes required (see qlty-fmt.diff)."
+            STATUS=1
+          fi
+          # If you want to fail on findings from `qlty check`, grep for severity keywords or a summary line here.
+          # Example (tune to your output format):
+          if grep -Eiq "(error|violation|fail)" qlty-check.txt; then
+            echo "❌ qlty check found issues."
+            STATUS=1
+          fi
+          exit $STATUS
