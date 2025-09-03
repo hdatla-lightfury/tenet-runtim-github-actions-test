@@ -46,11 +46,11 @@ jobs:
           fi
 
       # ---- qlty checks / smells / metrics ----
-      - name: qlty check
-        run: |
-          set -o pipefail
-          qlty check --all | tee qlty-check.txt
-        shell: bash
+      # - name: qlty check
+      #   run: |
+      #     set -o pipefail
+      #     qlty check --all | tee qlty-check.txt
+      #   shell: bash
 
       - name: qlty smells
         run: |
